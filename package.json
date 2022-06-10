@@ -1,0 +1,23 @@
+{
+  "name": "euchre",
+  "version": "1.0.0",
+  "description": "A mini multiplayer Euchre game",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KCsup/Euchre.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KCsup/Euchre/issues"
+  },
+  "homepage": "https://github.com/KCsup/Euchre#readme",
+  "dependencies": {
+    "@types/node": "^17.0.41"
+  }
+}
