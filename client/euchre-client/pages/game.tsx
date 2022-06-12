@@ -1,4 +1,5 @@
-import { io, Socket } from 'socket.io-client'
+import {useState} from 'react'
+import { Socket } from 'socket.io-client'
 
 type GameProps = {
     socket: Socket
@@ -7,13 +8,30 @@ type GameProps = {
 
 const Game = ({socket, name}: GameProps) => {
     
-    socket.emit("join", {
-	name: name
+    const [deck, setDeck] = useState<string[]>([])
+    const [players, setPlayers] = useState([])
+ 
+    socket.on("update", (res) => {
+	setDeck(res.deck)
+	setPlayers(res.players)
+    })
+
+    socket.on("full", () => {
+	alert("The game is currently full.")
+	window.close()
     })
 
     return (
 	<div>
-	    <h1>Game Screen</h1> 
+	    <h1>Game Screen</h1>
+	    <ul>
+		{players.map((p) => {
+		    return <h1>{p["name"]}</h1>
+		})}
+	    </ul>
+	    <button onClick={() => {
+		socket.emit("button")
+	    }}>Buttom</button>
 	</div>
     ) 
 }

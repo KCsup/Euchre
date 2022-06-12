@@ -25,11 +25,16 @@ const Home: NextPage = () => {
 		while(typeof name != 'string' || name.length < 1)
 		    name = window.prompt("Name: ")
 		
-		setSocket(io("http://localhost:6942"))	
+		const s = io("http://localhost:6942")
+		setSocket(s)	
 
 		setUsername(name)
 		alert(name)
 		setGame(true)
+
+		s.emit("join", {
+		    name: name
+		})
 	    }}>JOIN GAME</button>
 	</div>
     ) : (
