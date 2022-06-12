@@ -1,19 +1,33 @@
 import {useState} from 'react'
 import { Socket } from 'socket.io-client'
+import styles from '../styles/Game.module.css'
+
+type Player = {
+    name: string
+    hand: string[]
+    socket: string
+    host: boolean
+}
 
 type GameProps = {
     socket: Socket
-    name: string
 }
 
-const Game = ({socket, name}: GameProps) => {
+const Game = ({socket}: GameProps) => {
     
-    const [deck, setDeck] = useState<string[]>([])
-    const [players, setPlayers] = useState([])
+    const [players, setPlayers] = useState<Player[]>([])
+    const [hand, setHand] = useState<string[]>([])
+
+    const isSelf = (player: Player) => {
+	return player.socket == socket.id
+    }
  
     socket.on("update", (res) => {
-	setDeck(res.deck)
-	setPlayers(res.players)
+	const newPlayers: Player[] = res.players
+	setPlayers(newPlayers)
+
+	for(let p of newPlayers)
+	    if(isSelf(p)) setHand(p.hand)
     })
 
     socket.on("full", () => {
@@ -22,11 +36,19 @@ const Game = ({socket, name}: GameProps) => {
     })
 
     return (
-	<div>
-	    <h1>Game Screen</h1>
-	    <ul>
+	<div className={styles.container}>
+	    <h1>Waiting for more players...</h1>
+	    <ul className={styles.players}>
 		{players.map((p) => {
-		    return <h1>{p["name"]}</h1>
+		    let playerString = p.name
+		    if(isSelf(p)) playerString += " (That's You!)"
+		    if(p.host) playerString += " [HOST]"
+		    return <h2>{playerString}</h2>
+		})}
+	    </ul>
+	    <ul>
+		{hand.map(c => {
+		    return <h2>{c}</h2>
 		})}
 	    </ul>
 	    <button onClick={() => {
