@@ -8,6 +8,7 @@ type Player = {
     hand: string[]
     socket: string
     host: boolean
+    team: number
 }
 
 type GameProps = {
@@ -19,6 +20,9 @@ const Game = ({socket}: GameProps) => {
     const [players, setPlayers] = useState<Player[]>([])
     const [hand, setHand] = useState<string[]>([])
     const [gameStarted, setGameStarted] = useState(false)
+    const [turn, setTurn] = useState(0)
+    const [topCard, setTopCard] = useState("")
+    const [deciding, setDeciding] = useState(false)
 
     const isSelf = (player: Player) => {
 	return player.socket == socket.id
@@ -39,6 +43,10 @@ const Game = ({socket}: GameProps) => {
 
 	for(let p of newPlayers)
 	    if(isSelf(p)) setHand(p.hand)
+
+	setTurn(res.turn)
+	setTopCard(res.topCard)
+	setDeciding(res.deciding)
     })
 
     socket.on("full", () => {
@@ -68,6 +76,19 @@ const Game = ({socket}: GameProps) => {
 	    	</>
 	    ) : (
 		<>
+		    <h2>Team {getSelf()?.team! + 1}</h2>
+		    {turn == players.indexOf(getSelf()!) ? (
+			<>
+			    <h2>It's Your Turn</h2>
+			    {deciding ? (
+				<>
+				    <button className={styles.button}>Pick Up</button>
+				    <button className={styles.button}>Pass</button>
+				</>
+			    ) : null} 
+			</>
+		    ) : null}
+
 		    <ul className={styles.handDisplay}>
 	    		{hand.map(c => {
 			    return <Card value={c} onClick={() => {
