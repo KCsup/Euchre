@@ -25,7 +25,6 @@ const Home: NextPage = () => {
 		
 		const s = io("http://localhost:6942")
 		
-		console.log(s.disconnected)
 		setSocket(s)
 
 		alert(name)
