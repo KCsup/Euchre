@@ -82,13 +82,15 @@ io.on("connect", (socket) => {
 
     socket.on("disconnect", () => {
 	console.log("Disconnected")
-	for(let i = 0; i < players.length; i++)
-	    if(players[i].socket == socket.id) {
-		const player = players[i]
-		players.splice(i, 1)
+	const player = getPlayer(socket.id)
 
-		if(player.host) players[i].host = true
-	    }
+	if(player != undefined) {
+	    const i = players.indexOf(player)
+	    players.splice(i, 1)
+	    
+	    if(player.host && players.length > 0) players[i].host = true
+	}
+	
 	update()
     })
 
@@ -102,19 +104,21 @@ io.on("connect", (socket) => {
 	if(players.length == 0) player.host = true
 	players.push(player)
 	
-	if(players.length == 4) {
-	    deal()
-	}
-
 	console.log(`${res.name} Joined!`)
 	console.log(players)
 	
 	update()
     })
 
-    socket.on("button", (res) => {
-	console.log("button")
+    socket.on("startGame", () => {
+	if(players.length == 4) {
+	    gameStarted = true
+	    deal()
+
+	    update()
+	}
     })
+
 })
 
 server.listen(port, () => {
