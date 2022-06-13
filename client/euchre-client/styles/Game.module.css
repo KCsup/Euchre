@@ -35,3 +35,13 @@
     background-color: lightskyblue;
 }
 
+.decision {
+    display: flex;
+    flex-direction: row;
+}
+
+.decision button {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+

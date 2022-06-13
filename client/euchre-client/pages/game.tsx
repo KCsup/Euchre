@@ -9,6 +9,8 @@ type Player = {
     socket: string
     host: boolean
     team: number
+    dealer: boolean
+    turn: boolean
 }
 
 type GameProps = {
@@ -20,9 +22,10 @@ const Game = ({socket}: GameProps) => {
     const [players, setPlayers] = useState<Player[]>([])
     const [hand, setHand] = useState<string[]>([])
     const [gameStarted, setGameStarted] = useState(false)
-    const [turn, setTurn] = useState(0)
     const [topCard, setTopCard] = useState("")
     const [deciding, setDeciding] = useState(false)
+    const [decidingSuit, setDecidingSuit] = useState(false)
+    const [trump, setTrump] = useState("")
 
     const isSelf = (player: Player) => {
 	return player.socket == socket.id
@@ -44,9 +47,11 @@ const Game = ({socket}: GameProps) => {
 	for(let p of newPlayers)
 	    if(isSelf(p)) setHand(p.hand)
 
-	setTurn(res.turn)
 	setTopCard(res.topCard)
 	setDeciding(res.deciding)
+	setDecidingSuit(res.decidingSuit)
+
+	setTrump(res.trump)
     })
 
     socket.on("full", () => {
@@ -77,14 +82,31 @@ const Game = ({socket}: GameProps) => {
 	    ) : (
 		<>
 		    <h2>Team {getSelf()?.team! + 1}</h2>
-		    {turn == players.indexOf(getSelf()!) ? (
+		    {deciding ? (
+			<><Card value={topCard} onClick={() => {}}/></>
+		    ) : null}
+
+		    {!deciding && !decidingSuit ? (
+			<>
+			    <h2>Trump: {trump}</h2>
+			</>
+		    ) : null}
+		    {getSelf()?.turn ? (
 			<>
 			    <h2>It's Your Turn</h2>
 			    {deciding ? (
-				<>
-				    <button className={styles.button}>Pick Up</button>
-				    <button className={styles.button}>Pass</button>
-				</>
+				<div className={styles.decision}>
+				    <button className={styles.button} onClick={() => {
+					socket.emit("decision", {
+					    choice: "pick"
+					})
+				    }}>Pick Up</button>
+				    <button className={styles.button} onClick={() => {
+					socket.emit("decision", {
+					    choice: "pass"
+					})
+				    }}>Pass</button>
+				</div>
 			    ) : null} 
 			</>
 		    ) : null}

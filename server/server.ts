@@ -7,6 +7,8 @@ class Player {
     socket: string
     host: boolean
     team: number
+    dealer: boolean
+    turn: boolean
 
     constructor(name: string, socket: string) {
 	this.name = name
@@ -15,6 +17,9 @@ class Player {
 	this.hand = []
 	this.host = false
 	this.team = 0
+
+	this.dealer = false
+	this.turn = false
     }
 }
 
@@ -52,10 +57,11 @@ const newDeck = () => {
 
 let gameStarted = false
 let deciding = false
+let decidingSuit = false
 let players: Player[] = []
 let deck: string[] = newDeck()
-let turn = 0
 let topCard = ""
+let trump = ""
 
 const getPlayer = (socketId: string) => {
     for(let p of players)
@@ -74,15 +80,17 @@ const deal = () => {
 	}
 
     topCard = deck[0]
+    
 }
 
 const update = () => {
     io.emit("update", {
 	players: players,
 	gameStarted: gameStarted,
-	turn: turn,
 	topCard: topCard,
 	deciding: deciding,
+	decidingSuit: decidingSuit,
+	trump: trump,
     })
 
 }
@@ -159,8 +167,49 @@ io.on("connect", (socket) => {
 
 	    players = b
 
+	    players[0].dealer = true
+	    players[1].turn = true
+
 	    update()
 	}
+    })
+
+    socket.on("decision", (res) => {
+	const choice = res.choice
+	const player = getPlayer(socket.id)
+	
+	if(player == undefined) return
+
+	const i = players.indexOf(player)
+	players[i].turn = false
+	
+	if(choice == "pass") {
+	    if(players[i].dealer) {
+		deciding = false
+		decidingSuit = false
+	    }
+
+	    let nextI = i + 1
+	    if(nextI == players.length)
+		nextI = 0
+
+	    players[nextI].turn = true
+	}
+	else if(choice == "pick") {
+	    deciding = false
+
+	    trump = topCard.charAt(0)
+
+	    const dealerI = players.findIndex(p => p.dealer)
+	    if(dealerI == -1) console.log("No Dealer, something is wrong...")
+
+	    let startI = dealerI + 1
+	    if(startI == players.length) startI = 0
+
+	    players[startI].turn = true
+	}
+
+	update()
     })
 
 })
