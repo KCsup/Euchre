@@ -6,6 +6,7 @@ class Player {
     hand: string[]
     socket: string
     host: boolean
+    team: number
 
     constructor(name: string, socket: string) {
 	this.name = name
@@ -13,6 +14,7 @@ class Player {
 
 	this.hand = []
 	this.host = false
+	this.team = 0
     }
 }
 
@@ -49,8 +51,11 @@ const newDeck = () => {
 }
 
 let gameStarted = false
+let deciding = false
 let players: Player[] = []
 let deck: string[] = newDeck()
+let turn = 0
+let topCard = ""
 
 const getPlayer = (socketId: string) => {
     for(let p of players)
@@ -67,12 +72,17 @@ const deal = () => {
 	    p.hand.push(deck[i])
 	    deck.splice(i, 1)
 	}
+
+    topCard = deck[0]
 }
 
 const update = () => {
     io.emit("update", {
 	players: players,
 	gameStarted: gameStarted,
+	turn: turn,
+	topCard: topCard,
+	deciding: deciding,
     })
 
 }
@@ -105,15 +115,49 @@ io.on("connect", (socket) => {
 	players.push(player)
 	
 	console.log(`${res.name} Joined!`)
-	console.log(players)
+	// console.log(players)
 	
 	update()
     })
 
     socket.on("startGame", () => {
 	if(players.length == 4) {
+	    let team0Count = 0
+	    let team1Count = 0
+
+	    for(let p of players)
+		if(team0Count == 2) p.team = 1
+		else if(team1Count == 2) p.team = 0
+		else {
+		    const team = Math.floor(Math.random() * 2)
+		    p.team = team
+
+		    if(team == 0) team0Count++
+		    else if(team == 1) team1Count++
+		}
+
 	    gameStarted = true
 	    deal()
+	    deciding = true
+
+	    players.sort((a, b) => {
+		return a.team - b.team
+	    })
+	    
+	    // Sorts players in alternating team order
+	    let b: Player[] = []
+    
+	    let l = players.length - 1
+	    let L = l / 2
+	    for(let i = 0; i < L; i++) {
+		b.push(players[l - i], players[i])
+		if(players.length % 2) b.push(players[i])
+	    }
+
+	    // console.log(players)
+	    console.log(b)
+
+	    players = b
 
 	    update()
 	}
