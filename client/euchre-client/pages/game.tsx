@@ -11,6 +11,9 @@ type Player = {
     team: number
     dealer: boolean
     turn: boolean
+    switching: boolean
+    play: string
+    tricks: number
 }
 
 type GameProps = {
@@ -26,6 +29,7 @@ const Game = ({socket}: GameProps) => {
     const [deciding, setDeciding] = useState(false)
     const [decidingSuit, setDecidingSuit] = useState(false)
     const [trump, setTrump] = useState("")
+    const [followSuit, setFollowSuit] = useState("")
 
     const isSelf = (player: Player) => {
 	return player.socket == socket.id
@@ -52,6 +56,9 @@ const Game = ({socket}: GameProps) => {
 	setDecidingSuit(res.decidingSuit)
 
 	setTrump(res.trump)
+	setFollowSuit(res.followSuit)
+
+	console.log(res)
     })
 
     socket.on("full", () => {
@@ -75,7 +82,7 @@ const Game = ({socket}: GameProps) => {
 
 		    {getSelf()?.host && players.length == 4 ? (
 			<button className={styles.button} onClick={() => {
-			    socket.emit("startGame")
+			 socket.emit("startGame")
 			}}>Start Game</button>
 		    ) : null}
 	    	</>
@@ -83,7 +90,13 @@ const Game = ({socket}: GameProps) => {
 		<>
 		    <h2>Team {getSelf()?.team! + 1}</h2>
 		    {deciding ? (
-			<><Card value={topCard} onClick={() => {}}/></>
+			<><Card value={topCard} /></>
+		    ) : null}
+
+		    {getSelf()?.dealer ? (
+			<>
+			    <h1>You are the dealer.</h1>
+			</>
 		    ) : null}
 
 		    {!deciding && !decidingSuit ? (
@@ -91,6 +104,29 @@ const Game = ({socket}: GameProps) => {
 			    <h2>Trump: {trump}</h2>
 			</>
 		    ) : null}
+
+
+		    {/*
+		      * I don't want to use CSS grid :)
+		      */
+		    }
+		    <div className={styles.plays}>
+			{players.map(p => {
+			    return (
+				<div>
+				    <h3 className={styles.playName}>{p.name} {p.socket != socket.id && p.team == getSelf()?.team ? (
+					"[Teammate]"
+				    ) : ""}{p.socket == socket.id ? "(You)" : ""}</h3>
+				    <div className={p.turn ? (p.play == "" ? styles.emptyTurn : "") : (p.play == "" ? styles.empty : "")}>
+					{p.play != "" ? (
+					    <Card value={p.play} />
+					) : null}
+				    </div>
+				</div>
+			    )
+			})}
+		    </div>
+
 		    {getSelf()?.turn ? (
 			<>
 			    <h2>It's Your Turn</h2>
@@ -108,12 +144,74 @@ const Game = ({socket}: GameProps) => {
 				    }}>Pass</button>
 				</div>
 			    ) : null} 
+			    
+			    {decidingSuit ? (
+				<>
+				    <h2>Decide the trump...</h2>
+				    <div className={styles.suitDecision}>
+					<button className={styles.button} onClick={() => {
+					    socket.emit("suitDecision", {
+						choice: "S"
+					    })
+					}}>Spades</button>
+					
+					<button className={styles.button} onClick={() => {
+					    socket.emit("suitDecision", {
+						choice: "C"
+					    })
+					}}>Clubs</button>
+
+					<button className={styles.button} onClick={() => {
+					    socket.emit("suitDecision", {
+						choice: "H"
+					    })
+					}}>Hearts</button>
+
+					<button className={styles.button} onClick={() => {
+					    socket.emit("suitDecision", {
+						choice: "D"
+					    })
+					}}>Diamonds</button>
+
+			    `		<button className={styles.button} onClick={() => {
+					    socket.emit("suitDecision", {
+						choice: "pass"
+					    })
+					}}>Pass</button>
+				    </div>
+				</>
+			    ) : null}
+			</>
+		    ) : null}
+
+		    {getSelf()?.switching ? (
+			<>
+			    <h2>Pick a card to switch.</h2>
+			    <Card value={topCard} onClick={() => {}}/>
 			</>
 		    ) : null}
 
 		    <ul className={styles.handDisplay}>
 	    		{hand.map(c => {
 			    return <Card value={c} onClick={() => {
+				if(getSelf()?.switching)
+				    socket.emit("switch", {
+					card: c
+				    })
+
+				if(getSelf()?.turn) {
+				    if(followSuit != "") {
+					let hasSuit = false
+					for(const c of hand)
+					    if(c.charAt(0) == followSuit) hasSuit = true
+
+					if(hasSuit && c.charAt(0) != followSuit) return
+				    }
+
+				    socket.emit("play", {
+					play: c
+				    })
+				}
 				console.log(c)
 			    }} />
 	    		})}

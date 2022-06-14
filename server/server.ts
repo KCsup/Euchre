@@ -11,6 +11,7 @@ class Player {
     turn: boolean
     switching: boolean
     play: string
+    tricks: number
 
     constructor(name: string, socket: string) {
 	this.name = name
@@ -24,6 +25,7 @@ class Player {
 	this.turn = false
 	this.switching = false
 	this.play = ""
+	this.tricks = 0
     }
 }
 
@@ -66,6 +68,8 @@ let players: Player[] = []
 let deck: string[] = newDeck()
 let topCard = ""
 let trump = ""
+let foundWinner = false
+let followSuit = ""
 
 const getPlayer = (socketId: string) => {
     for(let p of players)
@@ -95,7 +99,13 @@ const update = () => {
 	deciding: deciding,
 	decidingSuit: decidingSuit,
 	trump: trump,
+	foundWinner: foundWinner,
+	followSuit: followSuit,
     })
+
+}
+
+const getWinner = (t: string, cards: string[]) => {
 
 }
 
@@ -272,6 +282,28 @@ io.on("connect", (socket) => {
 	const player = getPlayer(socket.id)
 
 	if(player == undefined) return
+
+	const i = players.indexOf(player)
+	const play = res.play
+
+	players[i].play = play
+
+	let onlyPlayed = true
+	for(const p of players)
+	    if(p.socket == socket.id) continue
+	    else if(p.play != "") onlyPlayed = false
+
+	if(onlyPlayed) followSuit = play.charAt(0)
+
+	players[i].hand.splice(players[i].hand.indexOf(play), 1)
+	players[i].turn = false
+
+	let nextI = i + 1
+	if(nextI == players.length) nextI = 0
+
+	players[nextI].turn = true
+	
+	update()
     })
 
 })
