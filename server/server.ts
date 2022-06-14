@@ -9,6 +9,8 @@ class Player {
     team: number
     dealer: boolean
     turn: boolean
+    switching: boolean
+    play: string
 
     constructor(name: string, socket: string) {
 	this.name = name
@@ -20,6 +22,8 @@ class Player {
 
 	this.dealer = false
 	this.turn = false
+	this.switching = false
+	this.play = ""
     }
 }
 
@@ -186,7 +190,7 @@ io.on("connect", (socket) => {
 	if(choice == "pass") {
 	    if(players[i].dealer) {
 		deciding = false
-		decidingSuit = false
+		decidingSuit = true
 	    }
 
 	    let nextI = i + 1
@@ -200,16 +204,74 @@ io.on("connect", (socket) => {
 
 	    trump = topCard.charAt(0)
 
-	    const dealerI = players.findIndex(p => p.dealer)
-	    if(dealerI == -1) console.log("No Dealer, something is wrong...")
+	    
 
-	    let startI = dealerI + 1
-	    if(startI == players.length) startI = 0
-
-	    players[startI].turn = true
+	    players[i].switching = true
 	}
 
 	update()
+    })
+
+    socket.on("switch", (res) => {
+	const player = getPlayer(socket.id)
+
+	if(player == undefined) return
+
+	const card = res.card
+	const i = players.indexOf(player)
+
+	players[i].hand.splice(players[i].hand.indexOf(card), 1)
+	players[i].hand.push(topCard)
+	players[i].switching = false
+	
+	const dealerI = players.findIndex(p => p.dealer)
+	if(dealerI == -1) console.log("No Dealer, something is wrong...")
+
+	let startI = dealerI + 1
+	if(startI == players.length) startI = 0
+
+	players[startI].turn = true
+
+	update()
+    })
+
+    socket.on("suitDecision", (res) => {
+	const choice = res.choice
+	const player = getPlayer(socket.id)
+
+	if(player == undefined) return
+
+	const i = players.indexOf(player)
+	players[i].turn = false
+
+	switch(choice) {
+	    case "pass":
+		let nextI = i + 1
+		if(nextI == players.length) nextI = 0
+
+		players[nextI].turn = true
+		break
+	    default:
+		trump = choice
+		decidingSuit = false
+
+		const dealerI = players.findIndex(p => p.dealer)
+		if(dealerI == -1) console.log("No Dealer, something is wrong...")
+		
+		let startI = dealerI + 1
+		if(startI == players.length) startI = 0
+
+		players[startI].turn = true
+		break
+	}
+
+	update()
+    })
+
+    socket.on("play", (res) => {
+	const player = getPlayer(socket.id)
+
+	if(player == undefined) return
     })
 
 })
