@@ -69,8 +69,12 @@ let deck: string[] = newDeck()
 let topCard = ""
 let trump = ""
 let foundWinner = false
+let foundRoundWinner = false
 let followSuit = ""
 let turnWinner = ""
+let roundWinner = ""
+
+let scores: number[] = new Array(2).fill(0)
 
 const opposites: {[key: string]: string} = {
     "H": "D",
@@ -81,6 +85,7 @@ const opposites: {[key: string]: string} = {
 
 const basicOrder = (suit: string) => {
     if(!["H", "D", "S", "C"].includes(suit)) return undefined
+
     return [
 	suit + "A", suit + "K", suit + "Q", suit + "J", suit + "10", suit + "9"
     ]
@@ -138,6 +143,9 @@ const update = () => {
 	foundWinner: foundWinner,
 	followSuit: followSuit,
 	turnWinner: turnWinner,
+	foundRoundWinner: foundRoundWinner,
+	roundWinner: roundWinner,
+	scores: scores,
     })
 
 }
@@ -246,8 +254,6 @@ io.on("connect", (socket) => {
 	    deciding = false
 
 	    trump = topCard.charAt(0)
-
-	    
 
 	    players[i].switching = true
 	}
@@ -361,7 +367,27 @@ io.on("connect", (socket) => {
 		else if(winner == "" || order.indexOf(play) < order.indexOf(winner)) winner = play
 
 	    players[players.indexOf(getPlayerByPlay(winner)!)].tricks += 1
-	    foundWinner = true
+	    
+	    let team0 = 0
+	    let team1 = 0
+
+	    for(const p of players)
+		if(p.team == 0) team0 += p.tricks
+		else team1 += p.tricks
+
+	    if(team0 >= 3) {
+		scores[0]++
+		roundWinner = "0"
+		foundRoundWinner = true
+	    }
+	    else if(team1 >= 3) {
+		scores[1]++
+		roundWinner = "1"
+		foundRoundWinner = true
+	    }
+	    else
+		foundWinner = true
+
 	    turnWinner = getPlayerByPlay(winner)?.socket!
 	} else {
 	    let nextI = i + 1
@@ -383,6 +409,39 @@ io.on("connect", (socket) => {
 	foundWinner = false
 	followSuit = ""
 	turnWinner = ""
+
+	update()
+    })
+
+    socket.on("nextRound", () => {
+	for(let p of players) {
+	    p.turn = false
+	    p.hand = []
+	    p.play = ""
+	    p.tricks = 0
+	}
+
+	foundRoundWinner = false
+	followSuit = ""
+	turnWinner = ""
+	roundWinner = ""
+	trump = ""
+
+	const dealerI = players.indexOf(players.find(p => p.dealer)!)!
+	let nextDealer = dealerI + 1
+	if(nextDealer == players.length) nextDealer = 0
+
+	players[dealerI].dealer = false
+	players[nextDealer].dealer = true
+
+	deck = newDeck()
+	deal()
+
+	deciding = true
+
+	let nextTurn = nextDealer + 1
+	if(nextTurn == players.length) nextTurn = 0
+	players[nextTurn].turn = true
 
 	update()
     })

@@ -32,6 +32,9 @@ const Game = ({socket}: GameProps) => {
     const [followSuit, setFollowSuit] = useState("")
     const [foundWinner, setFoundWinner] = useState(false)
     const [turnWinner, setTurnWinner] = useState("")
+    const [foundRoundWinner, setFoundRoundWinner] = useState(false)
+    const [roundWinner, setRoundWinner] = useState("")
+    const [scores, setScores] = useState(new Array(2).fill(0))
 
     const isSelf = (player: Player) => {
 	return player.socket == socket.id
@@ -70,6 +73,11 @@ const Game = ({socket}: GameProps) => {
 	setFoundWinner(res.foundWinner)
 	setTurnWinner(res.turnWinner)
 
+	setFoundRoundWinner(res.foundRoundWinner)
+	setRoundWinner(res.roundWinner)
+
+	setScores(res.scores)
+
 	console.log(res)
     })
 
@@ -80,6 +88,7 @@ const Game = ({socket}: GameProps) => {
 
     return (
 	<div className={styles.container}>
+	    
 	    { !gameStarted ? (
 		<>
 		    <h1>{players.length == 4 ? "Game Full!" : "Waiting for more players..."} {players.length}/4</h1>
@@ -100,6 +109,20 @@ const Game = ({socket}: GameProps) => {
 	    	</>
 	    ) : (
 		<>
+		    <div className={styles.scoreboard}>
+			<div>
+			    <h2>Team Scores:</h2>
+			    <h2>Team 1: {scores[0]}</h2>
+			    <h2>Team 2: {scores[1]}</h2>
+			</div>
+			<div>
+			    <h2>Tricks:</h2>
+			    {players.map(p => {
+				return <h3>{`${p.name}: ${p.tricks}`}</h3>
+			    })}
+			</div>
+		    </div>
+
 		    <h2>Team {getSelf()?.team! + 1}</h2>
 		    {deciding ? (
 			<><Card value={topCard} /></>
@@ -124,6 +147,18 @@ const Game = ({socket}: GameProps) => {
 				<button className={styles.button} onClick={() => {
 				    socket.emit("nextTurn")
 				}}>Next Turn</button>
+			    ) : null}
+			</>
+		    ) : null}
+			
+		    {foundRoundWinner ? (
+			<>
+			    <h2>Turn Winner: {players.find(p => p.socket == turnWinner)?.name}</h2>
+			    <h1>Round Winner: Team {parseInt(roundWinner) + 1}</h1>
+			    {getSelf()?.host ? (
+				<button className={styles.button} onClick={() => {
+				    socket.emit("nextRound")
+				}}>Next Round</button>
 			    ) : null}
 			</>
 		    ) : null}
