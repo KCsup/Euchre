@@ -255,7 +255,7 @@ io.on("connect", (socket) => {
 
 	    trump = topCard.charAt(0)
 
-	    players[i].switching = true
+	    players[players.findIndex(p => p.dealer)].switching = true
 	}
 
 	update()

@@ -174,7 +174,7 @@ const Game = ({socket}: GameProps) => {
 				<div>
 				    <h3 className={styles.playName}>{p.name} {p.socket != socket.id && p.team == getSelf()?.team ? (
 					"[Teammate]"
-				    ) : ""}{p.socket == socket.id ? "(You)" : ""}</h3>
+				    ) : ""}{p.socket == socket.id ? "(You)" : ""}{p.dealer ? " {Dealer}" : ""}</h3>
 				    <div className={p.turn ? (p.play == "" ? styles.emptyTurn : "") : (p.play == "" ? styles.empty : "")}>
 					{p.play != "" ? (
 					    <Card value={p.play} />
@@ -260,8 +260,11 @@ const Game = ({socket}: GameProps) => {
 				if(getSelf()?.turn) {
 				    if(followSuit != "") {
 					let hasSuit = false
-					for(const card of hand)
+					for(const card of hand) {
+					    if(opposites[trump] + "J" == card && followSuit != trump) continue
+
 					    if(card.charAt(0) == followSuit || (followSuit == trump && card == opposites[trump] + "J")) hasSuit = true
+					}
 
 					console.log(hasSuit)
 
