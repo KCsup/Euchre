@@ -70,10 +70,46 @@ let topCard = ""
 let trump = ""
 let foundWinner = false
 let followSuit = ""
+let turnWinner = ""
+
+const opposites: {[key: string]: string} = {
+    "H": "D",
+    "D": "H",
+    "S": "C",
+    "C": "S"
+}
+
+const basicOrder = (suit: string) => {
+    if(!["H", "D", "S", "C"].includes(suit)) return undefined
+    return [
+	suit + "A", suit + "K", suit + "Q", suit + "J", suit + "10", suit + "9"
+    ]
+}
+    
+const trumpOrder = (suit: string) => {
+    if(!["H", "D", "S", "C"].includes(suit)) return undefined
+
+    return [
+	suit + "J",
+	opposites[suit] + "J",
+	suit + "A",
+	suit + "K",
+	suit + "Q",
+	suit + "10",
+	suit + "9"
+    ]
+}
 
 const getPlayer = (socketId: string) => {
     for(let p of players)
 	if(p.socket == socketId) return p
+
+    return undefined
+}
+
+const getPlayerByPlay = (card: string) => {
+    for(let p of players)
+	if(p.play == card) return p
 
     return undefined
 }
@@ -101,11 +137,8 @@ const update = () => {
 	trump: trump,
 	foundWinner: foundWinner,
 	followSuit: followSuit,
+	turnWinner: turnWinner,
     })
-
-}
-
-const getWinner = (t: string, cards: string[]) => {
 
 }
 
@@ -289,20 +322,68 @@ io.on("connect", (socket) => {
 	players[i].play = play
 
 	let onlyPlayed = true
-	for(const p of players)
+	let havePlayed = 0
+	for(const p of players) {
+	    if(p.play != "") havePlayed++
+
 	    if(p.socket == socket.id) continue
 	    else if(p.play != "") onlyPlayed = false
+	}
 
-	if(onlyPlayed) followSuit = play.charAt(0)
+	if(onlyPlayed)
+	    if(play == opposites[trump] + "J") followSuit = trump
+	    else followSuit = play.charAt(0)
+
 
 	players[i].hand.splice(players[i].hand.indexOf(play), 1)
 	players[i].turn = false
 
-	let nextI = i + 1
-	if(nextI == players.length) nextI = 0
+	if(havePlayed == players.length) {
+	    let plays: string[] = []
+	    let anyTrump = false
+	    let winner = ""
 
-	players[nextI].turn = true
-	
+	    for(const p of players) {	
+		plays.push(p.play)
+
+		if(p.play.charAt(0) == trump || p.play == opposites[trump] + "J") anyTrump = true
+	    }
+	    
+	    let order: string[] | undefined = []
+
+	    if(anyTrump) order = trumpOrder(trump)
+	    else order = basicOrder(followSuit)
+
+	    if(order == undefined) return
+
+	    for(const play of plays)
+		if(!order.includes(play)) continue
+		else if(winner == "" || order.indexOf(play) < order.indexOf(winner)) winner = play
+
+	    players[players.indexOf(getPlayerByPlay(winner)!)].tricks += 1
+	    foundWinner = true
+	    turnWinner = getPlayerByPlay(winner)?.socket!
+	} else {
+	    let nextI = i + 1
+	    if(nextI == players.length) nextI = 0
+	    players[nextI].turn = true
+	}
+		
+	update()
+    })
+
+    socket.on("nextTurn", () => {
+	for(let p of players) {
+	    p.play = ""
+
+	    if(p.socket == turnWinner) p.turn = true
+	    else p.turn = false
+	}
+
+	foundWinner = false
+	followSuit = ""
+	turnWinner = ""
+
 	update()
     })
 

@@ -30,6 +30,8 @@ const Game = ({socket}: GameProps) => {
     const [decidingSuit, setDecidingSuit] = useState(false)
     const [trump, setTrump] = useState("")
     const [followSuit, setFollowSuit] = useState("")
+    const [foundWinner, setFoundWinner] = useState(false)
+    const [turnWinner, setTurnWinner] = useState("")
 
     const isSelf = (player: Player) => {
 	return player.socket == socket.id
@@ -41,6 +43,13 @@ const Game = ({socket}: GameProps) => {
 
 	return undefined
     }
+
+    const opposites: {[key: string]: string} = {
+	 "H": "D",
+	 "D": "H",
+	 "S": "C",
+	 "C": "S"
+     }
  
     socket.on("update", (res) => {
 	setGameStarted(res.gameStarted)
@@ -57,6 +66,9 @@ const Game = ({socket}: GameProps) => {
 
 	setTrump(res.trump)
 	setFollowSuit(res.followSuit)
+
+	setFoundWinner(res.foundWinner)
+	setTurnWinner(res.turnWinner)
 
 	console.log(res)
     })
@@ -102,6 +114,17 @@ const Game = ({socket}: GameProps) => {
 		    {!deciding && !decidingSuit ? (
 			<>
 			    <h2>Trump: {trump}</h2>
+			</>
+		    ) : null}
+
+		    {foundWinner ? (
+			<>
+			    <h1>Winner: {players.find(p => p.socket == turnWinner)?.name}</h1>
+			    {getSelf()?.host ? (
+				<button className={styles.button} onClick={() => {
+				    socket.emit("nextTurn")
+				}}>Next Turn</button>
+			    ) : null}
 			</>
 		    ) : null}
 
@@ -202,10 +225,12 @@ const Game = ({socket}: GameProps) => {
 				if(getSelf()?.turn) {
 				    if(followSuit != "") {
 					let hasSuit = false
-					for(const c of hand)
-					    if(c.charAt(0) == followSuit) hasSuit = true
+					for(const card of hand)
+					    if(card.charAt(0) == followSuit || (followSuit == trump && card == opposites[trump] + "J")) hasSuit = true
 
-					if(hasSuit && c.charAt(0) != followSuit) return
+					console.log(hasSuit)
+
+					if(hasSuit && (c.charAt(0) != followSuit && c != opposites[trump] + "J")) return
 				    }
 
 				    socket.emit("play", {
